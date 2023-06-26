@@ -37,67 +37,56 @@ void AStarSeq::solve()
 
         if (X.x == targetX && X.y == targetY)
         {
-            std::stack<Elem> buildSol;
             Elem elem{ X.x, X.y };
             while (!(elem.x == startX && elem.y == startY))
             {
-                buildSol.push(elem);
+                solution.push_back(elem);
                 elem = track[elem.y][elem.x];
             }
             solution.push_back(elem);
-            while (!buildSol.empty())
-            {
-                solution.push_back(buildSol.top());
-                buildSol.pop();
-            }
+            std::reverse(solution.begin(), solution.end());
 
             break;
         }
 
-        std::vector<Node> children;
         if (X.x > 0)
         {
             int x = X.x - 1;
             int y = X.y;
-            if (grid[y][x] == 0)
+            if (grid[y][x] == 0 && !closed[y][x])
             {
-                children.push_back(Node{ x, y, h(x, y, targetX, targetY)});
+                track[y][x] = Elem{ X.x, X.y };
+                open.insert(Node{x, y, h(x, y, targetX, targetY)});
             }
         }
         if (X.x < M-1)
         {
             int x = X.x + 1;
             int y = X.y;
-            if (grid[y][x] == 0)
+            if (grid[y][x] == 0 && !closed[y][x])
             {
-                children.push_back(Node{ x, y, h(x, y, targetX, targetY)});
+                track[y][x] = Elem{ X.x, X.y };
+                open.insert(Node{x, y, h(x, y, targetX, targetY)});
             }
         }
         if (X.y > 0)
         {
             int x = X.x;
             int y = X.y - 1;
-            if (grid[y][x] == 0)
+            if (grid[y][x] == 0 && !closed[y][x])
             {
-                children.push_back(Node{ x, y, h(x, y, targetX, targetY)});
+                track[y][x] = Elem{ X.x, X.y };
+                open.insert(Node{x, y, h(x, y, targetX, targetY)});
             }
         }
         if (X.y < N-1)
         {
             int x = X.x;
             int y = X.y + 1;
-            if (grid[y][x] == 0)
+            if (grid[y][x] == 0 && !closed[y][x])
             {
-                children.push_back(Node{ x, y, h(x, y, targetX, targetY)});
-            }
-        }
-
-        for (const Node& child : children)
-        {
-            if (!closed[child.y][child.x])
-            {
-                track[child.y][child.x] = Elem{ X.x, X.y };
-                open.insert(child);
+                track[y][x] = Elem{ X.x, X.y };
+                open.insert(Node{x, y, h(x, y, targetX, targetY)});
             }
         }
 
