@@ -2,7 +2,6 @@
 #include <Windows.h>
 #include <iostream>
 
-
 void Maze::generate()
 {
 	maze = Grid(N, std::vector<bool>(M, false));
