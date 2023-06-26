@@ -26,9 +26,9 @@ int main()
 #endif // PROJECT_PATH
 
 	Tester tester;
-	//tester.singleTestWebDump(100, 140);
+	//tester.singleTestWebDump(400, 800);
     //tester.generateTests();
-    tester.runTests();
+    tester.runTestsOMP();
 
 	return 0;
 }

@@ -4,6 +4,7 @@
 #include <fstream>
 #include <filesystem>
 #include <sstream>
+#include <omp.h>
 
 #include "../Maze/Maze.h"
 #include "../AStarCPU/AStarSeq.h"
@@ -117,7 +118,7 @@ void Tester::loadTests()
 		inputFile.close();
 		tests.push_back(std::move(test));
 
-		break;
+		//break;
     }
 
 	std::cout << "finished loading\n";
@@ -147,7 +148,7 @@ std::string testSolution(const Test& test, const std::vector<Elem>& solution)
 	return "correct";
 }
 
-void Tester::runTests()
+void Tester::runTestsSeq()
 {
 	if (tests.empty())
 		loadTests();
@@ -165,6 +166,35 @@ void Tester::runTests()
 	}
 	std::cout << "Total time: " << fullTimer;
 }
+
+void Tester::runTestsOMP()
+{
+	if (tests.empty())
+		loadTests();
+
+	double fullTimer = 0.0;
+	int numThreads = 1;
+#pragma omp parallel for schedule(dynamic, 1)
+	for (int i = 0; i < tests.size(); ++i)
+	{
+		numThreads = omp_get_num_threads();
+		AStarSeq aStarSeq{ tests[i].grid };
+		Timer timer;
+		aStarSeq.solve();
+		double elapsed = timer.elapsed();
+#pragma omp atomic
+		fullTimer += elapsed;
+#pragma omp critical
+		{
+			std::cout << "Test " << tests[i].grid.size() << "x" << tests[i].grid[0].size()
+				<< "\ttime:\t" << FIXED_FLOAT(elapsed) << "\tsolution:\t" << testSolution(tests[i], aStarSeq.getSolution()) << '\n';
+		}
+	}
+	std::cout << "Number of threads: " << numThreads << '\n';
+	std::cout << "Total time: " << fullTimer / numThreads << '\n';
+	std::cout << "Total CPU time: " << fullTimer << '\n';
+}
+
 
 void Tester::singleTest(int rows, int cols)
 {

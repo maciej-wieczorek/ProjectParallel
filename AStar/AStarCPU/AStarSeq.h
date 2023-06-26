@@ -10,6 +10,13 @@ public:
 
     bool operator<(const Node& other) const
     {
+        if (h == other.h)
+        {
+            if (x == other.x)
+                return y < other.y;
+            else
+                return x < other.x;
+        }
         return h < other.h;
     }
 };
@@ -29,12 +36,9 @@ private:
     int startY;
     int targetX;
     int targetY;
-    static constexpr int INF = std::numeric_limits<int>::max();
-    std::vector<std::vector<int>> metricsOpen;
-    std::vector<std::vector<int>> metricsClosed;
     std::vector<std::vector<Elem>> track;
     std::set<Node> open;
-	std::set<Node> closed;
+    std::vector<std::vector<bool>> closed;
     std::vector<Elem> path;
     std::vector<Elem> solution;
 };

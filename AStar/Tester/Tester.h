@@ -19,7 +19,8 @@ public:
 	void dumpJson() {};
 	void generateTests();
 	void loadTests();
-	void runTests();
+	void runTestsSeq();
+	void runTestsOMP();
 	void singleTest(int rows, int cols);
 	void singleTestWebDump(int rows, int cols);
 
