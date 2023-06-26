@@ -2,8 +2,8 @@
 
 AStarSeq::AStarSeq(const std::vector<std::vector<bool>>& _grid) :
 	grid{ _grid },
-	N{ grid.size() },
-	M{ grid[0].size() },
+	N{ static_cast<int>(grid.size()) },
+	M{ static_cast<int>(grid[0].size()) },
 	startX{ 0 },
 	startY{ 1 },
 	targetX{ M - 1 },
@@ -14,6 +14,12 @@ AStarSeq::AStarSeq(const std::vector<std::vector<bool>>& _grid) :
 {
 
 }
+
+int h(int x1, int y1, int x2, int y2)
+{
+    return abs(x2 - x1) + abs(y2 - y1);
+}
+
 
 std::vector<Elem> AStarSeq::solve()
 {

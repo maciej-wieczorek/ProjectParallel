@@ -2,11 +2,6 @@
 #include <set>
 #include "../Maze/Maze.h"
 
-int h(int x1, int y1, int x2, int y2)
-{
-    return abs(x2 - x1) + abs(y2 - y1);
-}
-
 class Node
 {
 public:
