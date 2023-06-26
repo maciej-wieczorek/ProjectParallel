@@ -6,45 +6,11 @@ class Node
 {
 public:
     int x, y;
-    int g;
     int h;
-
-    bool operator==(const Node& other) const
-    {
-        return x == other.x && y == other.y;
-    }
 
     bool operator<(const Node& other) const
     {
-        if (g + h < other.g + other.h)
-        {
-            return true;
-        }
-        else if (g + h == other.g + other.h)
-        {
-            if (h < other.h)
-            {
-                return true;
-            }
-            else if (other.h == h)
-            {
-                if (x != other.x)
-                    return x < other.x;
-                else
-                    return y < other.y;
-
-                // not complete
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else
-        {
-            return false;
-        }
-        
+        return h < other.h;
     }
 };
 
@@ -52,7 +18,8 @@ class AStarSeq
 {
 public:
     AStarSeq(const std::vector<std::vector<bool>>& _grid);
-    std::vector<Elem> solve();
+    void solve();
+    std::vector<Elem> getSolution() { return solution; };
     std::vector<Elem> getPath() { return path; };
 private:
     std::vector<std::vector<bool>> grid;
@@ -69,5 +36,6 @@ private:
     std::set<Node> open;
 	std::set<Node> closed;
     std::vector<Elem> path;
+    std::vector<Elem> solution;
 };
 

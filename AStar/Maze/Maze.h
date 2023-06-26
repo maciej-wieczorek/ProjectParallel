@@ -9,8 +9,8 @@ using json = nlohmann::json;
 using Grid = std::vector<std::vector<bool>>;
 struct Elem 
 {
-	size_t x;
-	size_t y;
+	int x;
+	int y;
 
 	void toJson(json& j) const
 	{
@@ -21,7 +21,7 @@ struct Elem
 class Maze
 {
 public:
-	Maze(size_t _N, size_t _M) : N{ _N }, M{ _M }, rd{}, generator(rd())
+	Maze(int _N, int _M) : N{ _N }, M{ _M }, rd{}, generator(rd())
 	{
 	}
 
@@ -33,8 +33,8 @@ public:
 private:
 	std::vector<Elem> getNeighbours(Elem pos, const Grid& maze);
 
-	size_t N = 20;
-	size_t M = 20;
+	int N;
+	int M;
 	std::random_device rd;
 	std::mt19937 generator;
 	Grid maze;

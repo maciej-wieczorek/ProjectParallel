@@ -11,7 +11,7 @@ void Maze::generate()
 	path.push(pos);
 	track.push(pos);
 	maze[0][0] = true;
-	size_t visited = 1;
+	int visited = 1;
 
 	while (visited != N * M)
 	{
@@ -50,7 +50,7 @@ Grid Maze::getMazeView() const
 
 	mazeView[1][0] = 0;
 	mazeView[mazeView.size() - 2][mazeView[0].size() - 1] = 0;
-	for (size_t i = 0; i < pathView.size() - 1; ++i)
+	for (int i = 0; i < pathView.size() - 1; ++i)
 	{
 		Elem pos = pathView[i];
 		Elem nextPos = pathView[i + 1];
@@ -89,7 +89,7 @@ std::vector<Elem> Maze::getNeighbours(Elem pos, const Grid& maze)
 	return n;
 }
 
-bool isOnPath(const std::vector<Elem>& path, size_t x, size_t y)
+bool isOnPath(const std::vector<Elem>& path, int x, int y)
 {
 	for (const auto& elem : path)
 	{
@@ -112,9 +112,9 @@ void Maze::printMaze(const Grid& mazeView, std::vector<Elem> visited, std::vecto
 	SetCurrentConsoleFontEx(hConsole, FALSE, &fontInfo);
 	char charBlock[] = u8"\u2588";
 
-	for (size_t i = 0; i < mazeView.size(); ++i)
+	for (int i = 0; i < mazeView.size(); ++i)
 	{
-		for (size_t j = 0; j < mazeView[0].size(); ++j)
+		for (int j = 0; j < mazeView[0].size(); ++j)
 		{
 			if (isOnPath(path, j, i))
 			{

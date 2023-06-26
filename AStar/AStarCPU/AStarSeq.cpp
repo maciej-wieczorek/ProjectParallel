@@ -21,20 +21,20 @@ int h(int x1, int y1, int x2, int y2)
 }
 
 
-std::vector<Elem> AStarSeq::solve()
+void AStarSeq::solve()
 {
-	Node start{ startX, startY, 0, h(startX, startY, targetX, targetY) };
+	Node start{ startX, startY, h(startX, startY, targetX, targetY) };
     open.insert(start);
     metricsOpen[start.y][start.x] = start.g + start.h;
     path.clear();
-    std::vector<Elem> solution;
+    solution.clear();
 
     while (!open.empty())
     {
         Node X = *open.begin();
         open.erase(open.begin());
         metricsOpen[X.y][X.x] = INF;
-        path.push_back(Elem{ (size_t)X.x, (size_t)X.y });
+        path.push_back(Elem{ X.x, X.y });
 
         if (X.x == targetX && X.y == targetY)
         {
@@ -99,43 +99,14 @@ std::vector<Elem> AStarSeq::solve()
             bool isOnClosed = metricsClosed[child.y][child.x] == INF ? false : true;
             if (!isOnOpen && !isOnClosed)
             {
-                track[child.y][child.x] = Elem{ (size_t)X.x, (size_t)X.y };
+                track[child.y][child.x] = Elem{ X.x, X.y };
                 metricsOpen[child.y][child.x] = child.g + child.h;
                 open.insert(child);
             }
-            else if (isOnOpen)
-			{
-                int f = metricsOpen[child.y][child.x];
-                if (child.g + child.h < f)
-                {
-					track[child.y][child.x] = Elem{ (size_t)X.x, (size_t)X.y };
-                    metricsOpen[child.y][child.x] = child.g + child.h;
-
-                    auto iter = open.find(Node{ child.x, child.y, f });
-                    open.erase(iter);
-                    open.insert(Node{ child.x, child.y, child.g + child.h });
-                }
-			}
-            else
-			{
-                int f = metricsClosed[child.y][child.x];
-                if (child.g + child.h < f)
-                {
-					track[child.y][child.x] = Elem{ (size_t)X.x, (size_t)X.y };
-                    metricsClosed[child.y][child.x] = INF;
-                    metricsOpen[child.y][child.x] = child.g + child.h;
-
-                    auto iter = closed.find(Node{ child.x, child.y, f });
-                    closed.erase(iter);
-                    open.insert(Node{ child.x, child.y, child.g + child.h });
-                }
-			}
         }
 
         metricsClosed[X.y][X.x] = X.g + X.h;
         closed.insert(X);
     }
-    
-    return solution;
 }
 
