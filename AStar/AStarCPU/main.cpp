@@ -5,7 +5,7 @@
 #include <fstream>
 
 #include "../Maze/Maze.h"
-#include "json.hpp"
+#include "../thirdparty/json.hpp"
 
 using json = nlohmann::json;
 

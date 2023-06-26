@@ -2,7 +2,7 @@
 #include <vector>
 #include <random>
 #include <stack>
-#include "../AStar/json.hpp"
+#include "../thirdparty/json.hpp"
 
 using json = nlohmann::json;
 

@@ -18,9 +18,12 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="AStarSeq.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="json.hpp">
+    <ClInclude Include="AStarSeq.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
