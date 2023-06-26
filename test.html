@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Maze</title>
+  <style>
+    body {
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gridCanvas"></canvas>
+
+  <script>
+    let g_data;
+    fetch('AStar/x64/Release/maze.json')
+    .then(response => response.json())
+    .then(data => {
+        g_data = data;
+        // Grid properties
+        const rows = data.grid.length; // Number of rows
+        const cols = data.grid[0].length; // Number of columns
+        const cellSize = Math.min(parseInt(window.innerHeight / rows), parseInt(window.innerWidth / cols));
+        console.log('Cell size: ', cellSize);
+
+        // Get the canvas element and its context
+        const canvas = document.getElementById('gridCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set the canvas dimensions based on the grid size
+        canvas.width = cols * cellSize;
+        canvas.height = rows * cellSize;
+
+        // Function to draw the grid
+        function drawGrid(data) {
+          // Clear the canvas
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          // Loop through each cell in the grid
+          for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+              let cellColor = '#FFFFFF';
+
+              if (data.grid[row][col] == true) {
+                cellColor = '#0000FF';
+              }
+
+              // Draw the cell
+              ctx.fillStyle = cellColor;
+              ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+            }
+          }
+
+          for (let i = 0; i < data.path.length; i++) {
+            const cellColor = '#00FF00';
+            const row = data.path[i]['y'];
+            const col = data.path[i]['x'];
+            // Draw the cell
+            ctx.fillStyle = cellColor;
+            ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+          }
+
+          for (let i = 0; i < data.solution.length; i++) {
+            const cellColor = '#FF0000';
+            const row = data.solution[i]['y'];
+            const col = data.solution[i]['x'];
+            // Draw the cell
+            ctx.fillStyle = cellColor;
+            ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+          }
+        }
+
+        function isOnPath(path, row, col) {
+          for (let i = 0; i < path.length; i++) {
+            if (path[i]['x'] == col && path[i]['y'] == row) {
+              return true;
+            }
+          }
+          return false;
+        }
+        // Initial grid drawing
+        drawGrid(data);
+    })
+    .catch(error => {
+        console.log('Error:', error);
+    });
+  </script>
+</body>
+</html>
