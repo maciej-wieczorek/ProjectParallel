@@ -28,7 +28,9 @@ int main()
 	Tester tester;
 	//tester.singleTestWebDump(400, 800);
     //tester.generateTests();
-    tester.runTestsOMP();
+    //tester.runTestsOMP();
+    //tester.seqTestWebDump(200, 200);
+    tester.cudaTestWebDump(100, 100);
 
 	return 0;
 }

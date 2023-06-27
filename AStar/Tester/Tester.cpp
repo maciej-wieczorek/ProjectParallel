@@ -6,9 +6,9 @@
 #include <sstream>
 #include <omp.h>
 
-#include "../Maze/Maze.h"
-#include "../AStarCPU/AStarSeq.h"
 #include "Timer.h"
+#include "../AStarCPU/AStarSeq.h"
+#include "../AStarGPU/AStarCU.h"
 
 #define FIXED_FLOAT(x) std::fixed << std::setprecision(3) << (x)
 
@@ -195,8 +195,11 @@ void Tester::runTestsOMP()
 	std::cout << "Total CPU time: " << fullTimer << '\n';
 }
 
+void Tester::runTestsCU()
+{
+}
 
-void Tester::singleTest(int rows, int cols)
+void Tester::seqTest(int rows, int cols)
 {
 	Maze maze{rows, cols};
 	maze.generate();
@@ -209,7 +212,7 @@ void Tester::singleTest(int rows, int cols)
 	std::cout << "Single test " << rows << "x" << cols << " time: " << elapsed << '\n';
 }
 
-void Tester::singleTestWebDump(int rows, int cols)
+void Tester::seqTestWebDump(int rows, int cols)
 {
 	Maze maze{rows, cols};
 	maze.generate();
@@ -221,11 +224,30 @@ void Tester::singleTestWebDump(int rows, int cols)
 	auto elapsed = timer.elapsed();
 	std::cout << "Single test " << rows << "x" << cols << " time: " << elapsed << '\n';
 	
+	webDump(grid, aStarSeq.getSolution(), aStarSeq.getPath());
+}
+void Tester::cudaTestWebDump(int rows, int cols)
+{
+	Maze maze{rows, cols};
+	maze.generate();
+	std::vector<std::vector<bool>> grid = maze.getMazeView();
+	
+	AStarCU aStarCU{ grid };
+	Timer timer;
+	aStarCU.solve();
+	auto elapsed = timer.elapsed();
+	std::cout << "Single test " << rows << "x" << cols << " time: " << elapsed << '\n';
+	
+	webDump(grid, aStarCU.getSolution(), aStarCU.getPath());
+}
+
+void Tester::webDump(const std::vector<std::vector<bool>>& grid, const std::vector<Elem>& solution, const std::vector<Elem>& path)
+{
 	json jsonData;
 	json jsonSolutionData;
-	to_json(jsonSolutionData, aStarSeq.getSolution());
+	to_json(jsonSolutionData, solution);
 	json jsonPathData;
-	to_json(jsonPathData, aStarSeq.getPath());
+	to_json(jsonPathData, path);
 
 	jsonData = json{ {"grid", grid}, {"path", jsonPathData}, {"solution", jsonSolutionData} };
 
@@ -233,5 +255,5 @@ void Tester::singleTestWebDump(int rows, int cols)
 	std::ofstream outputFile(outputDir + "/maze.json");
 	outputFile << jsonData.dump();
 	outputFile.close();
-};
+}
 

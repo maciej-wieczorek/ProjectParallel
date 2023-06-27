@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 
+#include "../Maze/Maze.h"
+
 extern std::string projectPath;
 
 struct Test
@@ -13,16 +15,15 @@ struct Test
 class Tester
 {
 public:
-	void loadBin() {};
-	void loadJson() {};
-	void dumpBin() {};
-	void dumpJson() {};
 	void generateTests();
 	void loadTests();
 	void runTestsSeq();
 	void runTestsOMP();
-	void singleTest(int rows, int cols);
-	void singleTestWebDump(int rows, int cols);
+	void runTestsCU();
+	void seqTest(int rows, int cols);
+	void seqTestWebDump(int rows, int cols);
+	void cudaTestWebDump(int rows, int cols);
+	void webDump(const std::vector<std::vector<bool>>& grid, const std::vector<Elem>& solution, const std::vector<Elem>& path);
 
 private:
 	std::vector<Test> tests;
