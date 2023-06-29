@@ -11,7 +11,60 @@ struct Node
     int x, y, h;
 };
 
-void dispachAStarCU(unsigned int N, unsigned int M, bool* grid, Elem* solution, Elem* path);
+struct SetNode
+{
+    Node node;
+    SetNode* left;
+    SetNode* right;
+};
+
+__device__ SetNode* createNode(Node node)
+{
+    SetNode* newNode = new SetNode;
+    newNode->node = node;
+    newNode->left = newNode->right = NULL;
+    return newNode;
+}
+
+__device__ SetNode* insert(SetNode* root, Node node)
+{
+    if (root == NULL) {
+        return createNode(node);
+    }
+
+    if (node.h < root->node.h) {
+        root->left = insert(root->left, node);
+    } 
+    root->right = insert(root->right, node);
+
+    return root;
+}
+
+__device__ bool contains(SetNode* root, Node node)
+{
+    if (root == NULL) {
+        return false;
+    }
+
+    if (node.x == root->node.x && node.y == root->node.y && node.h == root->node.h) {
+        return true;
+    }
+
+    if (node.h < root->node.h) {
+        return contains(root->left, node);
+    } else {
+        return contains(root->right, node);
+    }
+}
+
+__device__ void deleteSet(SetNode* root)
+{
+    if (root != NULL) {
+        deleteSet(root->left);
+        deleteSet(root->right);
+        delete root;
+    }
+}
 
 __device__ int heuristic(int row, int col, int goalRow, int goalCol)
 {
@@ -67,6 +120,7 @@ __global__ void AStarKernel(unsigned int N, unsigned int M, bool* grid, bool* cl
     open[openSize] = start;
     ++openSize;
 
+    bool found = false;
     while (openSize > 0)
     {
         Node X = getBestAndErase(open, openSize);
@@ -76,13 +130,14 @@ __global__ void AStarKernel(unsigned int N, unsigned int M, bool* grid, bool* cl
 
         if (X.x == targetX && X.y == targetY)
         {
+            found = true;
             Elem elem{ X.x, X.y };
             int solutionSize = 0;
             while (!(elem.x == startX && elem.y == startY))
             {
                 solution[solutionSize] = elem;
                 ++solutionSize;
-                elem = track[N * elem.y + elem.x];
+                elem = track[M * elem.y + elem.x];
             }
 			solution[solutionSize] = elem;
             ++solutionSize;
@@ -95,9 +150,9 @@ __global__ void AStarKernel(unsigned int N, unsigned int M, bool* grid, bool* cl
         {
             int x = X.x - 1;
             int y = X.y;
-            if (grid[N * y + x] == 0 && !closed[N * y + x])
+            if (grid[M * y + x] == 0 && !closed[M * y + x])
             {
-                track[N * y + x] = Elem{ X.x, X.y };
+                track[M * y + x] = Elem{ X.x, X.y };
                 open[openSize] = Node{ x, y, heuristic(x, y, targetX, targetY) };
                 ++openSize;
             }
@@ -106,9 +161,9 @@ __global__ void AStarKernel(unsigned int N, unsigned int M, bool* grid, bool* cl
         {
             int x = X.x + 1;
             int y = X.y;
-            if (grid[N * y + x] == 0 && !closed[N * y + x])
+            if (grid[M * y + x] == 0 && !closed[M * y + x])
             {
-                track[N * y + x] = Elem{ X.x, X.y };
+                track[M * y + x] = Elem{ X.x, X.y };
                 open[openSize] = Node{ x, y, heuristic(x, y, targetX, targetY) };
                 ++openSize;
             }
@@ -117,9 +172,9 @@ __global__ void AStarKernel(unsigned int N, unsigned int M, bool* grid, bool* cl
         {
             int x = X.x;
             int y = X.y - 1;
-            if (grid[N * y + x] == 0 && !closed[N * y + x])
+            if (grid[M * y + x] == 0 && !closed[M * y + x])
             {
-                track[N * y + x] = Elem{ X.x, X.y };
+                track[M * y + x] = Elem{ X.x, X.y };
                 open[openSize] = Node{ x, y, heuristic(x, y, targetX, targetY) };
                 ++openSize;
             }
@@ -128,17 +183,32 @@ __global__ void AStarKernel(unsigned int N, unsigned int M, bool* grid, bool* cl
         {
             int x = X.x;
             int y = X.y + 1;
-            if (grid[N * y + x] == 0 && !closed[N * y + x])
+            if (grid[M * y + x] == 0 && !closed[M * y + x])
             {
-                track[N * y + x] = Elem{ X.x, X.y };
+                track[M * y + x] = Elem{ X.x, X.y };
                 open[openSize] = Node{ x, y, heuristic(x, y, targetX, targetY) };
                 ++openSize;
             }
         }
 
-        closed[N * X.y + X.x] = true;
+        closed[M * X.y + X.x] = true;
     }
+    
+    if (!found)
+        printf("No solution found\n");
 }
+
+struct AStarArgs
+{
+    unsigned int N;
+    unsigned int M;
+    bool* brid;
+    bool* closed;
+    Node* open;
+    Elem* track;
+    Elem* solution;
+    Elem* path;
+};
 
 void dispachAStarCU(unsigned int N, unsigned int M, bool* grid, Elem* solution, Elem* path)
 {
@@ -151,6 +221,9 @@ void dispachAStarCU(unsigned int N, unsigned int M, bool* grid, Elem* solution, 
     Elem* dev_path;
     cudaError_t cudaStatus;
 
+    cudaStream_t stream;
+    cudaStreamCreate(&stream);
+
     // Choose which GPU to run on
     cudaStatus = cudaSetDevice(0);
     if (cudaStatus != cudaSuccess) {
@@ -159,51 +232,51 @@ void dispachAStarCU(unsigned int N, unsigned int M, bool* grid, Elem* solution, 
     }
 
     // Allocate GPU buffers for three vectors (one input, two output)
-    cudaStatus = cudaMalloc((void**)&dev_grid, size * sizeof(bool));
+    cudaStatus = cudaMallocAsync((void**)&dev_grid, size * sizeof(bool), stream);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMalloc failed!");
         goto Error;
     }
 
-    cudaStatus = cudaMalloc((void**)&dev_closed, size * sizeof(bool));
+    cudaStatus = cudaMallocAsync((void**)&dev_closed, size * sizeof(bool), stream);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMalloc failed!");
         goto Error;
     }
 
-    cudaStatus = cudaMalloc((void**)&dev_open, size * sizeof(Node));
+    cudaStatus = cudaMallocAsync((void**)&dev_open, size * sizeof(Node), stream);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMalloc failed!");
         goto Error;
     }
 
-    cudaStatus = cudaMalloc((void**)&dev_track, size * sizeof(Elem));
+    cudaStatus = cudaMallocAsync((void**)&dev_track, size * sizeof(Elem), stream);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMalloc failed!");
         goto Error;
     }
 
-    cudaStatus = cudaMalloc((void**)&dev_solution, size * sizeof(Elem));
+    cudaStatus = cudaMallocAsync((void**)&dev_solution, size * sizeof(Elem), stream);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMalloc failed!");
         goto Error;
     }
 
-    cudaStatus = cudaMalloc((void**)&dev_path, size * sizeof(Elem));
+    cudaStatus = cudaMallocAsync((void**)&dev_path, size * sizeof(Elem), stream);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMalloc failed!");
         goto Error;
     }
 
     // Copy input vectors from host memory to GPU buffers.
-    cudaStatus = cudaMemcpy(dev_grid, grid, size * sizeof(bool), cudaMemcpyHostToDevice);
+    cudaStatus = cudaMemcpyAsync(dev_grid, grid, size * sizeof(bool), cudaMemcpyHostToDevice, stream);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMemcpy failed!");
         goto Error;
     }
 
     // Launch a kernel on the GPU with one thread for each element.
-    AStarKernel<<<1, 1>>>(N, M, dev_grid, dev_closed, dev_open, dev_track, dev_solution, dev_path);
+    AStarKernel<<<1, 1, 0, stream>>>(N, M, dev_grid, dev_closed, dev_open, dev_track, dev_solution, dev_path);
 
     // Check for any errors launching the kernel
     cudaStatus = cudaGetLastError();
@@ -221,34 +294,30 @@ void dispachAStarCU(unsigned int N, unsigned int M, bool* grid, Elem* solution, 
     }
 
     // Copy solution from GPU buffer to host memory.
-    cudaStatus = cudaMemcpy(solution, dev_solution, size * sizeof(Elem), cudaMemcpyDeviceToHost);
+    cudaStatus = cudaMemcpyAsync(solution, dev_solution, size * sizeof(Elem), cudaMemcpyDeviceToHost, stream);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMemcpy failed!");
         goto Error;
     }
 
-    cudaStatus = cudaMemcpy(path, dev_path, size * sizeof(Elem), cudaMemcpyDeviceToHost);
+    cudaStatus = cudaMemcpyAsync(path, dev_path, size * sizeof(Elem), cudaMemcpyDeviceToHost, stream);
     if (cudaStatus != cudaSuccess) {
         fprintf(stderr, "cudaMemcpy failed!");
         goto Error;
     }
 
 Error:
-    cudaFree(dev_grid);
-    cudaFree(dev_closed);
-    cudaFree(dev_open);
-    cudaFree(dev_track);
-    cudaFree(dev_solution);
-    cudaFree(dev_path);
+    cudaFreeAsync(dev_grid, stream);
+    cudaFreeAsync(dev_closed, stream);
+    cudaFreeAsync(dev_open, stream);
+    cudaFreeAsync(dev_track, stream);
+    cudaFreeAsync(dev_solution, stream);
+    cudaFreeAsync(dev_path, stream);
+
+    cudaStreamDestroy(stream);
     
     if (cudaStatus != cudaSuccess)
     {
         fprintf(stderr, "AStarCU failed!");
-    }
-
-    cudaStatus = cudaDeviceReset();
-    if (cudaStatus != cudaSuccess)
-    {
-        fprintf(stderr, "cudaDeviceReset failed!");
     }
 }

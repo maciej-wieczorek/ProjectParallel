@@ -5,6 +5,8 @@
 #include <filesystem>
 #include <sstream>
 #include <omp.h>
+#include <thread>
+#include <mutex>
 
 #include "Timer.h"
 #include "../AStarCPU/AStarSeq.h"
@@ -27,7 +29,7 @@ void Tester::generateTests()
 	std::cout << "generating tests... ";
 	std::filesystem::path path{ projectPath + "/tests/" };
 	constexpr int startSize = 5;
-	constexpr int endSize = 1005;
+	constexpr int endSize = 105;
 	constexpr int numOfTests = 100;
 	constexpr int sizeInc = (endSize - startSize) / numOfTests;
 
@@ -195,24 +197,69 @@ void Tester::runTestsOMP()
 	std::cout << "Total CPU time: " << fullTimer << '\n';
 }
 
-void Tester::runTestsCU()
+void workerFunction(const Test* test, std::mutex* mutex, double* fullTimer)
 {
+	AStarCU aStarCU{ test->grid };
+	Timer timer;
+	aStarCU.solve();
+	auto elapsed = timer.elapsed();
+
+	mutex->lock();
+	(*fullTimer) += elapsed;
+	std::cout << "Test " << test->grid.size() << "x" << test->grid[0].size()
+		<< "\ttime:\t" << FIXED_FLOAT(elapsed) << "\tsolution:\t" << testSolution(*test, aStarCU.getSolution()) << '\n';
+	mutex->unlock();
 }
 
-void Tester::seqTest(int rows, int cols)
+void Tester::runTestsCU()
 {
-	Maze maze{rows, cols};
-	maze.generate();
-	std::vector<std::vector<bool>> grid = maze.getMazeView();
-	
+	if (tests.empty())
+		loadTests();
+
+	double fullTimer = 0.0;
+	std::vector<std::thread> workers;
+	std::mutex mutex;
+	for (const Test& test : tests)
+	{
+		workers.push_back(std::thread(workerFunction, &test, &mutex, &fullTimer));
+	}
+
+	for (auto& worker : workers)
+	{
+		worker.join();
+	}
+
+	std::cout << "Total time: " << fullTimer / workers.size();
+
+}
+
+void Tester::seqTestWithGrid(const std::vector<std::vector<bool>>& grid)
+{
+	int rows = grid.size();
+	int cols = grid[0].size();
 	AStarSeq aStarSeq{ grid };
 	Timer timer;
 	aStarSeq.solve();
 	auto elapsed = timer.elapsed();
 	std::cout << "Single test " << rows << "x" << cols << " time: " << elapsed << '\n';
+
+	webDump(grid, aStarSeq.getSolution(), aStarSeq.getPath());
 }
 
-void Tester::seqTestWebDump(int rows, int cols)
+void Tester::cudaTestWithGrid(const std::vector<std::vector<bool>>& grid)
+{
+	int rows = grid.size();
+	int cols = grid[0].size();
+	AStarCU aStarCU{ grid };
+	Timer timer;
+	aStarCU.solve();
+	auto elapsed = timer.elapsed();
+	std::cout << "Single test " << rows << "x" << cols << " time: " << elapsed << '\n';
+
+	webDump(grid, aStarCU.getSolution(), aStarCU.getPath());
+}
+
+void Tester::seqTestRandomGrid(int rows, int cols)
 {
 	Maze maze{rows, cols};
 	maze.generate();
@@ -226,7 +273,7 @@ void Tester::seqTestWebDump(int rows, int cols)
 	
 	webDump(grid, aStarSeq.getSolution(), aStarSeq.getPath());
 }
-void Tester::cudaTestWebDump(int rows, int cols)
+void Tester::cudaTestRandomGrid(int rows, int cols)
 {
 	Maze maze{rows, cols};
 	maze.generate();

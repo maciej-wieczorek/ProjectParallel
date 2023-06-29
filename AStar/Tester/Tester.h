@@ -20,9 +20,10 @@ public:
 	void runTestsSeq();
 	void runTestsOMP();
 	void runTestsCU();
-	void seqTest(int rows, int cols);
-	void seqTestWebDump(int rows, int cols);
-	void cudaTestWebDump(int rows, int cols);
+	void seqTestWithGrid(const std::vector<std::vector<bool>>& grid);
+	void cudaTestWithGrid(const std::vector<std::vector<bool>>& grid);
+	void seqTestRandomGrid(int rows, int cols);
+	void cudaTestRandomGrid(int rows, int cols);
 	void webDump(const std::vector<std::vector<bool>>& grid, const std::vector<Elem>& solution, const std::vector<Elem>& path);
 
 private:
