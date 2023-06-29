@@ -30,8 +30,9 @@ void Tester::generateTests()
 	std::filesystem::path path{ projectPath + "/tests/" };
 	constexpr int startSize = 5;
 	constexpr int endSize = 105;
-	constexpr int numOfTests = 100;
+	constexpr int numOfTests = 2000;
 	constexpr int sizeInc = (endSize - startSize) / numOfTests;
+	constexpr int incEvery = numOfTests / (endSize - startSize);
 
 	int size = startSize;
 	for (int i = 0; i < numOfTests; ++i)
@@ -59,7 +60,7 @@ void Tester::generateTests()
 		int gridRows = grid.size();
 		int gridCols = grid[0].size();
 		std::stringstream filename;
-		filename << "test" << gridRows << "x" << gridCols << ".bin";
+		filename << "test-" << i << "-" << gridRows << "x" << gridCols << ".bin";
 		std::ofstream outputFile{ path.string() + filename.str(), std::ios::binary };
 
 		outputFile.write(reinterpret_cast<const char*>(&gridRows), sizeof(gridRows));
@@ -76,7 +77,16 @@ void Tester::generateTests()
 		outputFile.write(reinterpret_cast<const char*>(&solutionSize), sizeof(solutionSize));
 
 		outputFile.close();
-		size += sizeInc;
+
+		if (sizeInc > 0)
+		{
+			size += sizeInc;
+		}
+		else
+		{
+			if (i % incEvery == 0)
+				++size;
+		}
 	}
 
 	std::cout << "finished generating\n";
@@ -197,40 +207,29 @@ void Tester::runTestsOMP()
 	std::cout << "Total CPU time: " << fullTimer << '\n';
 }
 
-void workerFunction(const Test* test, std::mutex* mutex, double* fullTimer)
-{
-	AStarCU aStarCU{ test->grid };
-	Timer timer;
-	aStarCU.solve();
-	auto elapsed = timer.elapsed();
-
-	mutex->lock();
-	(*fullTimer) += elapsed;
-	std::cout << "Test " << test->grid.size() << "x" << test->grid[0].size()
-		<< "\ttime:\t" << FIXED_FLOAT(elapsed) << "\tsolution:\t" << testSolution(*test, aStarCU.getSolution()) << '\n';
-	mutex->unlock();
-}
-
 void Tester::runTestsCU()
 {
 	if (tests.empty())
 		loadTests();
 
-	double fullTimer = 0.0;
-	std::vector<std::thread> workers;
-	std::mutex mutex;
+	std::vector<const Grid*> grids;
 	for (const Test& test : tests)
 	{
-		workers.push_back(std::thread(workerFunction, &test, &mutex, &fullTimer));
+		grids.push_back(&test.grid);
 	}
+	
+	AStarCU aStarCU{ grids };
+	Timer timer;
+	aStarCU.solve();
+	double elapsed = timer.elapsed();
 
-	for (auto& worker : workers)
+	for (size_t i = 0; i < tests.size(); ++i)
 	{
-		worker.join();
+		std::cout << "Test " << tests[i].grid.size() << "x" << tests[i].grid[0].size()
+			<< "\tsolution:\t" << testSolution(tests[i], aStarCU.getSolution(i)) << '\n';
 	}
 
-	std::cout << "Total time: " << fullTimer / workers.size();
-
+	std::cout << "Total time: " << elapsed << '\n';
 }
 
 void Tester::seqTestWithGrid(const std::vector<std::vector<bool>>& grid)
@@ -250,13 +249,15 @@ void Tester::cudaTestWithGrid(const std::vector<std::vector<bool>>& grid)
 {
 	int rows = grid.size();
 	int cols = grid[0].size();
-	AStarCU aStarCU{ grid };
+	std::vector<const Grid*> grids;
+	grids.push_back(&grid);
+	AStarCU aStarCU{ grids };
 	Timer timer;
 	aStarCU.solve();
 	auto elapsed = timer.elapsed();
 	std::cout << "Single test " << rows << "x" << cols << " time: " << elapsed << '\n';
 
-	webDump(grid, aStarCU.getSolution(), aStarCU.getPath());
+	webDump(grid, aStarCU.getSolution(0), aStarCU.getPath(0));
 }
 
 void Tester::seqTestRandomGrid(int rows, int cols)
@@ -279,13 +280,15 @@ void Tester::cudaTestRandomGrid(int rows, int cols)
 	maze.generate();
 	std::vector<std::vector<bool>> grid = maze.getMazeView();
 	
-	AStarCU aStarCU{ grid };
+	std::vector<const Grid*> grids;
+	grids.push_back(&grid);
+	AStarCU aStarCU{ grids };
 	Timer timer;
 	aStarCU.solve();
 	auto elapsed = timer.elapsed();
 	std::cout << "Single test " << rows << "x" << cols << " time: " << elapsed << '\n';
 	
-	webDump(grid, aStarCU.getSolution(), aStarCU.getPath());
+	webDump(grid, aStarCU.getSolution(0), aStarCU.getPath(0));
 }
 
 void Tester::webDump(const std::vector<std::vector<bool>>& grid, const std::vector<Elem>& solution, const std::vector<Elem>& path)

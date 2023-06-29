@@ -1,42 +1,58 @@
 #include "AStarCU.h"
 #include <iostream>
-AStarCU::AStarCU(const std::vector<std::vector<bool>>& _grid) :
-	gridVec{ _grid },
-	N{ static_cast<int>(gridVec.size()) },
-	M{ static_cast<int>(gridVec[0].size()) }
+AStarCU::AStarCU(std::vector<const Grid*>& _grids) :
+	grids{ _grids },
+	paths(grids.size(), std::vector<Elem>{}),
+	solutions(grids.size(), std::vector<Elem>{})
 {
-	grid = new bool[N * M];
-    for (size_t i = 0; i < N; ++i)
-    {
-        for (size_t j = 0; j < M; ++j)
-        {
-            grid[i * M + j] = gridVec[i][j];
-        }
-    }
+	for (size_t i = 0; i < grids.size(); ++i)
+	{
+		const Grid* grid = grids[i];
+		unsigned int size = grid->size() * grid->at(0).size();
+		paths[i] = std::vector<Elem>(size, Elem{ 0, 0 });
+		solutions[i] = std::vector<Elem>(size, Elem{ 0, 0 });
+	}
 }
 
-void dispachAStarCU(unsigned int N, unsigned int M, bool* grid, Elem* solution, Elem* path);
+void dispachAStarCU(const std::vector<const Grid*>& grids, std::vector<std::vector<Elem>>& paths, std::vector<std::vector<Elem>>& solutions);
 
 void AStarCU::solve()
 {
-    std::vector<Elem> oversizedSolution(N * M, Elem{ 0, 0 });
-    std::vector<Elem> oversizedPath(N * M, Elem{ 0, 0 });
+    dispachAStarCU(grids, paths, solutions);
 
-    dispachAStarCU(N, M, grid, oversizedSolution.data(), oversizedPath.data());
+	for (size_t i = 0; i < solutions.size(); ++i)
+	{
+		std::vector<Elem> trimedSolution;
+		for (size_t j = 0; j < solutions[i].size(); ++j)
+		{
+			if (solutions[i][j].x == 0 && solutions[i][j].y == 0)
+			{
+				break;
+			}
+			else
+			{
+				trimedSolution.push_back(solutions[i][j]);
+			}
+		}
 
-    for (Elem elem : oversizedSolution)
-    {
-        if (elem.x == 0 && elem.y == 0)
-            break;
-        else
-            solution.push_back(elem);
-    }
+		solutions[i] = trimedSolution;
+	}
+	
+	for (size_t i = 0; i < paths.size(); ++i)
+	{
+		std::vector<Elem> trimedPath;
+		for (size_t j = 0; j < paths[i].size(); ++j)
+		{
+			if (paths[i][j].x == 0 && paths[i][j].y == 0)
+			{
+				break;
+			}
+			else
+			{
+				trimedPath.push_back(paths[i][j]);
+			}
+		}
 
-    for (Elem elem : oversizedPath)
-    {
-        if (elem.x == 0 && elem.y == 0)
-            break;
-        else
-            path.push_back(elem);
-    }
+		paths[i] = trimedPath;
+	}
 }

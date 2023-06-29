@@ -32,6 +32,7 @@ int main()
     //tester.runTestsOMP();
     //tester.seqTestWebDump(470, 900);
     //tester.cudaTestWebDump(200, 50);
+    tester.runTestsSeq();
     tester.runTestsCU();
 
     //Maze maze{ 200, 50 };
@@ -40,8 +41,6 @@ int main()
 
     //tester.seqTestWithGrid(grid);
     //tester.cudaTestWithGrid(grid);
-
-    cudaDeviceReset();
 
 	return 0;
 }
