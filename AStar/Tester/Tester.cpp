@@ -273,14 +273,21 @@ double Tester::runTestsOMP(bool silent)
 	{
 		solvers.push_back(AStarSeq{ tests[i].grid });
 	}
-	Timer timer;
-#pragma omp parallel for schedule(dynamic, 1)
-	for (int i = 0; i < tests.size(); ++i)
+	double timeStart = omp_get_wtime();
+#pragma omp parallel
 	{
-		numThreads = omp_get_num_threads();
-		solvers[i].solve();
+#pragma omp master
+		{
+			numThreads = omp_get_num_threads();
+		}
+#pragma omp for schedule(dynamic, 1)
+		for (int i = 0; i < tests.size(); ++i)
+		{
+			solvers[i].solve();
+		}
 	}
-	double elapsed = timer.elapsed();
+	double timeStop = omp_get_wtime();
+	double elapsed = timeStop - timeStart;
 
 	if (!silent)
 	{
