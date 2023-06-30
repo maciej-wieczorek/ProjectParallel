@@ -8,6 +8,7 @@ extern std::string projectPath;
 
 struct Test
 {
+	std::string filename;
 	std::vector<std::vector<bool>> grid;
 	int solutionSize;
 };
@@ -17,6 +18,8 @@ class Tester
 public:
 	void generateTests();
 	void loadTests();
+	std::vector<std::vector<bool>> loadGrid(std::string filename);
+	Test loadTest(std::string filename);
 	void runTestsSeq();
 	void runTestsOMP();
 	void runTestsCU();

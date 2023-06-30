@@ -7,6 +7,7 @@
 #include <omp.h>
 #include <thread>
 #include <mutex>
+#include <iomanip>
 
 #include "Timer.h"
 #include "../AStarCPU/AStarSeq.h"
@@ -28,6 +29,11 @@ void Tester::generateTests()
 {
 	std::cout << "generating tests... ";
 	std::filesystem::path path{ projectPath + "/tests/" };
+
+	for (const auto& entry : std::filesystem::directory_iterator(path)) 
+        std::filesystem::remove_all(entry.path());
+
+
 	constexpr int startSize = 5;
 	constexpr int endSize = 105;
 	constexpr int numOfTests = 2000;
@@ -74,6 +80,8 @@ void Tester::generateTests()
 			}
 		}
 		int solutionSize = solution.size();
+		if (solutionSize < rows || solutionSize < cols)
+			throw std::exception{};
 		outputFile.write(reinterpret_cast<const char*>(&solutionSize), sizeof(solutionSize));
 
 		outputFile.close();
@@ -105,6 +113,7 @@ void Tester::loadTests()
 		inputFile.read(reinterpret_cast<char*>(&gridCols), sizeof(gridCols));
 
 		Test test;
+		test.filename = entry.path().filename().string();
 		test.grid = std::vector<std::vector<bool>>(gridRows, std::vector<bool>(gridCols, false));
 
 		for (int i = 0; i < gridRows; ++i)
@@ -135,6 +144,67 @@ void Tester::loadTests()
 
 	std::cout << "finished loading\n";
 }
+
+std::vector<std::vector<bool>> Tester::loadGrid(std::string filename)
+{
+	std::filesystem::path path{ projectPath + "/tests/" + filename };
+	std::ifstream inputFile{ path };
+	int gridRows = 0, gridCols = 0;
+	inputFile.read(reinterpret_cast<char*>(&gridRows), sizeof(gridRows));
+	inputFile.read(reinterpret_cast<char*>(&gridCols), sizeof(gridCols));
+
+	std::vector<std::vector<bool>> grid(gridRows, std::vector<bool>(gridCols, false));
+
+	for (int i = 0; i < gridRows; ++i)
+	{
+		for (int j = 0; j < gridCols; ++j)
+		{
+			bool field;
+			inputFile.read(reinterpret_cast<char*>(&field), sizeof(field));
+			grid[i][j] = field;
+		}
+	}
+
+	inputFile.close();
+
+	return grid;
+}
+
+Test Tester::loadTest(std::string filename)
+{
+	std::filesystem::path path{ projectPath + "/tests/" + filename };
+	std::ifstream inputFile{ path };
+	int gridRows = 0, gridCols = 0;
+	inputFile.read(reinterpret_cast<char*>(&gridRows), sizeof(gridRows));
+	inputFile.read(reinterpret_cast<char*>(&gridCols), sizeof(gridCols));
+
+	Test test;
+	test.grid = std::vector<std::vector<bool>>(gridRows, std::vector<bool>(gridCols, false));
+
+	for (int i = 0; i < gridRows; ++i)
+	{
+		for (int j = 0; j < gridCols; ++j)
+		{
+			bool field;
+			inputFile.read(reinterpret_cast<char*>(&field), sizeof(field));
+			test.grid[i][j] = field;
+		}
+	}
+	int solutionSize = 0;
+	inputFile.read(reinterpret_cast<char*>(&solutionSize), sizeof(solutionSize));
+	test.solutionSize = solutionSize;
+
+	char dummy;
+	inputFile.read(reinterpret_cast<char*>(&dummy), sizeof(dummy));
+
+	if (!inputFile.eof())
+		throw std::exception{};
+
+	inputFile.close();
+
+	return test;
+}
+
 
 std::string testSolution(const Test& test, const std::vector<Elem>& solution)
 {
@@ -173,10 +243,10 @@ void Tester::runTestsSeq()
 		aStarSeq.solve();
 		auto elapsed = timer.elapsed();
 		fullTimer += elapsed;
-		std::cout << "Test " << test.grid.size() << "x" << test.grid[0].size()
-			<< "\ttime:\t" << FIXED_FLOAT(elapsed) << "\tsolution:\t" << testSolution(test, aStarSeq.getSolution()) << '\n';
+		std::cout << "Test " << std::setw(30) << test.filename << "\ttime:\t" << FIXED_FLOAT(elapsed)
+			<< "\tsolution: " << testSolution(test, aStarSeq.getSolution()) << '\n';
 	}
-	std::cout << "Total time: " << fullTimer;
+	std::cout << "Total time: " << fullTimer << '\n';
 }
 
 void Tester::runTestsOMP()
@@ -198,8 +268,8 @@ void Tester::runTestsOMP()
 		fullTimer += elapsed;
 #pragma omp critical
 		{
-			std::cout << "Test " << tests[i].grid.size() << "x" << tests[i].grid[0].size()
-				<< "\ttime:\t" << FIXED_FLOAT(elapsed) << "\tsolution:\t" << testSolution(tests[i], aStarSeq.getSolution()) << '\n';
+			std::cout << "Test " << std::setw(30) << tests[i].filename << "\ttime:\t" << FIXED_FLOAT(elapsed)
+				<< "\tsolution: " << testSolution(tests[i], aStarSeq.getSolution()) << '\n';
 		}
 	}
 	std::cout << "Number of threads: " << numThreads << '\n';
@@ -225,8 +295,8 @@ void Tester::runTestsCU()
 
 	for (size_t i = 0; i < tests.size(); ++i)
 	{
-		std::cout << "Test " << tests[i].grid.size() << "x" << tests[i].grid[0].size()
-			<< "\tsolution:\t" << testSolution(tests[i], aStarCU.getSolution(i)) << '\n';
+		std::cout << "Test " << std::setw(30) << tests[i].filename << "\tsolution: " <<
+			testSolution(tests[i], aStarCU.getSolution(i)) << '\n';
 	}
 
 	std::cout << "Total time: " << elapsed << '\n';

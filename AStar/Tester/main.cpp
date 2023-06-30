@@ -32,7 +32,7 @@ int main()
     //tester.runTestsOMP();
     //tester.seqTestWebDump(470, 900);
     //tester.cudaTestWebDump(200, 50);
-    tester.runTestsSeq();
+    //tester.runTestsSeq();
     tester.runTestsCU();
 
     //Maze maze{ 200, 50 };
@@ -41,6 +41,9 @@ int main()
 
     //tester.seqTestWithGrid(grid);
     //tester.cudaTestWithGrid(grid);
+
+    //Test test = tester.loadTest("test-1623-87x349.bin");
+    //tester.cudaTestWithGrid(test.grid);
 
 	return 0;
 }
