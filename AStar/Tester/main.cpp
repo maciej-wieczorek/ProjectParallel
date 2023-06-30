@@ -29,11 +29,12 @@ int main()
 	Tester tester;
 	//tester.singleTestWebDump(400, 800);
     //tester.generateTests();
-    //tester.runTestsOMP();
-    //tester.seqTestWebDump(470, 900);
+    //tester.seqTestRandomGrid(20, 20);
+    //tester.seqTestRandomGrid(470, 900);
     //tester.cudaTestWebDump(200, 50);
     //tester.runTestsSeq();
-    tester.runTestsCU();
+    //tester.runTestsOMP();
+    //tester.runTestsCU();
 
     //Maze maze{ 200, 50 };
     //maze.generate();
@@ -44,6 +45,8 @@ int main()
 
     //Test test = tester.loadTest("test-1623-87x349.bin");
     //tester.cudaTestWithGrid(test.grid);
+
+    tester.runIncTestsSizeTest();
 
 	return 0;
 }

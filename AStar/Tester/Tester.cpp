@@ -25,20 +25,25 @@ void to_json(json& j, const std::vector<Elem>& vec)
     }
 }
 
-void Tester::generateTests()
+void Tester::generateTests(int startSize, int endSize, int numOfTests, bool purge)
 {
 	std::cout << "generating tests... ";
 	std::filesystem::path path{ projectPath + "/tests/" };
 
-	for (const auto& entry : std::filesystem::directory_iterator(path)) 
-        std::filesystem::remove_all(entry.path());
+	if (purge)
+	{
+		for (const auto& entry : std::filesystem::directory_iterator(path))
+		{
+			std::filesystem::remove_all(entry.path());
+		}
+	}
 
-
-	constexpr int startSize = 5;
-	constexpr int endSize = 105;
-	constexpr int numOfTests = 2000;
-	constexpr int sizeInc = (endSize - startSize) / numOfTests;
-	constexpr int incEvery = numOfTests / (endSize - startSize);
+	int sizeInc = (endSize - startSize) / numOfTests;
+	int incEvery;
+	if (endSize - startSize > 0)
+		incEvery = numOfTests / (endSize - startSize);
+	else
+		incEvery = std::numeric_limits<int>::max();
 
 	int size = startSize;
 	for (int i = 0; i < numOfTests; ++i)
@@ -230,7 +235,7 @@ std::string testSolution(const Test& test, const std::vector<Elem>& solution)
 	return "correct";
 }
 
-void Tester::runTestsSeq()
+double Tester::runTestsSeq(bool silent)
 {
 	if (tests.empty())
 		loadTests();
@@ -243,41 +248,56 @@ void Tester::runTestsSeq()
 		aStarSeq.solve();
 		auto elapsed = timer.elapsed();
 		fullTimer += elapsed;
-		std::cout << "Test " << std::setw(30) << test.filename << "\ttime:\t" << FIXED_FLOAT(elapsed)
-			<< "\tsolution: " << testSolution(test, aStarSeq.getSolution()) << '\n';
+		if (!silent)
+		{
+			std::cout << "Test " << std::setw(30) << test.filename << "\ttime:\t" << FIXED_FLOAT(elapsed)
+				<< "\tsolution: " << testSolution(test, aStarSeq.getSolution()) << '\n';
+		}
 	}
-	std::cout << "Total time: " << fullTimer << '\n';
+	if (!silent)
+		std::cout << "Total time: " << fullTimer << '\n';
+	
+	return fullTimer;
 }
 
-void Tester::runTestsOMP()
+double Tester::runTestsOMP(bool silent)
 {
 	if (tests.empty())
 		loadTests();
 
 	double fullTimer = 0.0;
 	int numThreads = 1;
+
+	std::vector<AStarSeq> solvers;
+	for (int i = 0; i < tests.size(); ++i)
+	{
+		solvers.push_back(AStarSeq{ tests[i].grid });
+	}
+	Timer timer;
 #pragma omp parallel for schedule(dynamic, 1)
 	for (int i = 0; i < tests.size(); ++i)
 	{
 		numThreads = omp_get_num_threads();
-		AStarSeq aStarSeq{ tests[i].grid };
-		Timer timer;
-		aStarSeq.solve();
-		double elapsed = timer.elapsed();
-#pragma omp atomic
-		fullTimer += elapsed;
-#pragma omp critical
-		{
-			std::cout << "Test " << std::setw(30) << tests[i].filename << "\ttime:\t" << FIXED_FLOAT(elapsed)
-				<< "\tsolution: " << testSolution(tests[i], aStarSeq.getSolution()) << '\n';
-		}
+		solvers[i].solve();
 	}
-	std::cout << "Number of threads: " << numThreads << '\n';
-	std::cout << "Total time: " << fullTimer / numThreads << '\n';
-	std::cout << "Total CPU time: " << fullTimer << '\n';
+	double elapsed = timer.elapsed();
+
+	if (!silent)
+	{
+		for (size_t i = 0; i < tests.size(); ++i)
+		{
+			std::cout << "Test " << std::setw(30) << tests[i].filename << "\tsolution: " <<
+				testSolution(tests[i], solvers[i].getSolution()) << '\n';
+		}
+
+		std::cout << "Number of threads: " << numThreads << '\n';
+		std::cout << "Total time: " << elapsed << '\n';
+	}
+
+	return elapsed;
 }
 
-void Tester::runTestsCU()
+double Tester::runTestsCU(bool silent)
 {
 	if (tests.empty())
 		loadTests();
@@ -293,13 +313,61 @@ void Tester::runTestsCU()
 	aStarCU.solve();
 	double elapsed = timer.elapsed();
 
-	for (size_t i = 0; i < tests.size(); ++i)
+	if (!silent)
 	{
-		std::cout << "Test " << std::setw(30) << tests[i].filename << "\tsolution: " <<
-			testSolution(tests[i], aStarCU.getSolution(i)) << '\n';
+		for (size_t i = 0; i < tests.size(); ++i)
+		{
+			std::cout << "Test " << std::setw(30) << tests[i].filename << "\tsolution: " <<
+				testSolution(tests[i], aStarCU.getSolution(i)) << '\n';
+		}
+
+		std::cout << "Total time: " << elapsed << '\n';
 	}
 
-	std::cout << "Total time: " << elapsed << '\n';
+	return elapsed;
+}
+
+void Tester::runIncTestsSizeTest(int numTestsStart, int numTestsEnd, int sizeInc, int repeat)
+{
+	int size = numTestsStart;
+	std::vector<double> seqResults;
+	std::vector<double> ompResults;
+	std::vector<double> cuResults;
+	while (size <= numTestsEnd)
+	{
+		std::cout << "testing size: " << size << '\n';
+		generateTests(5, 105, size);
+		loadTests();
+
+		double seqAvg = 0.0;
+		for (int i = 0; i < repeat; ++i)
+			seqAvg += runTestsSeq(true);
+		seqAvg /= repeat;
+		seqResults.push_back(seqAvg);
+
+		double ompAvg = 0.0;
+		for (int i = 0; i < repeat; ++i)
+			ompAvg += runTestsOMP(true);
+		ompAvg /= repeat;
+		ompResults.push_back(ompAvg);
+
+		double cuAvg = 0.0;
+		for (int i = 0; i < repeat; ++i)
+			cuAvg += runTestsCU(true);
+		cuAvg /= repeat;
+		cuResults.push_back(cuAvg);
+
+		size += sizeInc;
+	}
+
+	int i = 0;
+	size = numTestsStart;
+	while (size <= numTestsEnd)
+	{
+		std::cout << size << ',' << FIXED_FLOAT(seqResults[i] / ompResults[i]) << ',' << FIXED_FLOAT(seqResults[i] / cuResults[i]) << '\n';
+		++i;
+		size += sizeInc;
+	}
 }
 
 void Tester::seqTestWithGrid(const std::vector<std::vector<bool>>& grid)

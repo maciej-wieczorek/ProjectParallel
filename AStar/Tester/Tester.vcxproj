@@ -83,7 +83,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\lib\x64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(CudaToolkitDir)\lib\x64</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies);cudart.lib;cudadevrt.lib</AdditionalDependencies>
     </Link>
     <CudaCompile>
@@ -107,7 +107,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\lib\x64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(CudaToolkitDir)\lib\x64</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies);cudart.lib;cudadevrt.lib</AdditionalDependencies>
     </Link>
     <CudaCompile>
@@ -127,7 +127,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\lib\x64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(CudaToolkitDir)\lib\x64</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies);cudart.lib;cudadevrt.lib</AdditionalDependencies>
     </Link>
     <CudaCompile>
@@ -155,7 +155,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\lib\x64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(CudaToolkitDir)\lib\x64</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies);cudart.lib;cudadevrt.lib</AdditionalDependencies>
     </Link>
     <CudaCompile>

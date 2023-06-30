@@ -16,13 +16,14 @@ struct Test
 class Tester
 {
 public:
-	void generateTests();
+	void generateTests(int startSize = 5, int endSize = 105, int numOfTests = 2000, bool purge = true);
 	void loadTests();
 	std::vector<std::vector<bool>> loadGrid(std::string filename);
 	Test loadTest(std::string filename);
-	void runTestsSeq();
-	void runTestsOMP();
-	void runTestsCU();
+	double runTestsSeq(bool silent = false);
+	double runTestsOMP(bool silent = false);
+	double runTestsCU(bool silent = false);
+	void runIncTestsSizeTest(int numTestsStart = 100, int numTestsEnd = 2200, int sizeInc = 300, int repeat = 5);
 	void seqTestWithGrid(const std::vector<std::vector<bool>>& grid);
 	void cudaTestWithGrid(const std::vector<std::vector<bool>>& grid);
 	void seqTestRandomGrid(int rows, int cols);
